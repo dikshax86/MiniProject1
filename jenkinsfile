@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        DOCKER_IMAGE_NAME = "calculator"
+        GITHUB_REPO_URL   = "https://github.com/dikshax86/MiniProject1.git"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                // Fetch code from GitHub
+                git url: "${GITHUB_REPO_URL}", branch: "main"
+            }
+        }
+
+        stage('Create Docker Image') {
+            steps {
+                script {
+                    // Building the docker image from Dockerfile
+                    def image = docker.build("${DOCKER_IMAGE_NAME}", ".")
+                }
+            }
+        }
+
+        stage('Upload Image to DockerHub') {
+            steps {
+                script {
+                    docker.withRegistry('', 'DockerHubCred') {
+                        sh "docker tag calculator dknights/calculator:latest"
+                        sh "docker push dknights/calculator"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy using Ansible') {
+            steps {
+                // Execute ansible playbook
+                ansiblePlaybook(
+                    playbook: "deploy.yml",
+                    inventory: "inventory"
+                )
+            }
+        }
+
+    }
+}

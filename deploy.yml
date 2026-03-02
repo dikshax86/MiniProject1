@@ -1,0 +1,33 @@
+---
+- name: Pull image and run calculator container
+  hosts: localhost
+  connection: local
+  become: false
+
+  tasks:
+
+    - name: Get calculator image from Docker Hub
+      docker_image:
+        name: dknights/calculator
+        source: pull
+      register: pull_output
+
+    - name: Print result of image pull
+      debug:
+        var: pull_output
+
+    - name: Make sure docker service is running
+      service:
+        name: docker
+        state: started
+
+    - name: Stop old container if it is already running
+      command: docker stop my_calculator
+      ignore_errors: yes
+
+    - name: Remove old container if it exists
+      command: docker rm my_calculator
+      ignore_errors: yes
+
+    - name: Run calculator container
+      command: docker run -d --name my_calculator dknights/calculator /bin/bash
